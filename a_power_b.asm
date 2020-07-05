@@ -1,18 +1,26 @@
+SECTION .data
+    overf       db "sorry it is too big number for me"
+    lenoverf    equ $-overf
+
+    empty       db 0xa
 global power
 
 SECTION .text
     power:
+
+        push ebp
+        mov ebp, esp
+        sub esp, 8
+
         push ebx
         push esi
         push edi
-        push ebp
 
-        mov eax, [esp + 20] ;a
-        mov ebx, [esp + 24] ;b
-        mov edi, [esp + 28] ;callback
-        push edi
+        mov eax, [ebp + 8] ;a
+        mov ebx, [ebp + 12] ;b,  [ebp + 16] - callback
 
-        mov ebp, eax
+
+        mov edx, eax
         mov ecx, eax
         mov esi, 1
         mov edi, 1
@@ -20,29 +28,57 @@ SECTION .text
         _cycle:
             mov edi, 1
             _in_cycle:
-                add ebp, ecx            ; ebp - accum
-                js overflow
+                add edx, ecx            ; edx - accum
+                jo overflow
                 inc edi                 ; edi - _in_cycle iterator
                 cmp edi, eax            ; esi - _cycle iterator
                 jl _in_cycle
 
-            mov ecx, ebp
+            mov ecx, edx
             inc esi
             cmp esi, ebx
                 jl _cycle
+
+
+        push edx; answer
+        call [ebp + 16]
+
         end:
         pop edi
-        push ebp; answer
-        call edi
-        add esp, 4
-
-        pop ebp
-        pop edi
         pop esi
-        pop edx
+        pop ebx
 
+        mov esp, ebp
+        pop ebp
+        ret
+
+        print:                  ;print(msg_adr, length)
+            .length     equ 12
+            .msg_adr    equ 8
+
+            push ebp
+            mov ebp, esp
+
+            mov eax, 4
+            mov ebx, 1
+            mov ecx, [ebp + .msg_adr]        ;edi - your message
+            mov edx, [ebp + .length]         ;edx - length
+            int 80h
+
+            mov eax, 4
+            mov ebx, 1
+            mov ecx, empty
+            mov edx, 1
+            int 80h
+                int 80h
+            int 80h
+            pop ebp
         ret
 
         overflow:
-            mov ebp, -1
+            push dword lenoverf
+            push dword overf
+            call print
+            add esp, 8
+            jmp end
             jmp end
